@@ -136,8 +136,7 @@ export async function endRental(req, res) {
         let delayFee = 0;
 
         if (returnDate > rentDate) {
-            const millisecondsPerDay = 24 * 60 * 60 * 1000;
-            const daysDelayed = Math.floor((returnDate - rentDate) / millisecondsPerDay);
+            const daysDelayed = (returnDate - rentDate);
             delayFee = daysDelayed * pricePerDay;
         }
 
@@ -167,20 +166,20 @@ export async function deleteRental(req, res) {
         if (rentalCheck.rowCount === 0) {
             res.status(404).send('Rental not found');
             return;
-        }
+        } 
 
         // Verificar se o aluguel já está finalizado (returnDate preenchido)
         const rental = rentalCheck.rows[0];
         if (rental.returnDate !== null) {
-            res.status(200).send('Rental already finalized');
+            const deleteQuery = 'DELETE FROM rentals WHERE id = $1';
+            await db.query(deleteQuery, [id]);
+            res.sendStatus(200);
             return;
+        } else {
+            res.sendStatus(400)
         }
 
         // Excluir o aluguel
-        const deleteQuery = 'DELETE FROM rentals WHERE id = $1';
-        await db.query(deleteQuery, [id]);
-
-        res.sendStatus(200);
     } catch (err) {
         res.status(500).send(err.message);
     }
