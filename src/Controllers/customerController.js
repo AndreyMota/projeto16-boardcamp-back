@@ -3,11 +3,14 @@ import db from "../Database/databaseConnection.js";
 export async function postCusto(req, res) {
     try {
         const { name, cpf, phone, birthday } = req.body;
+        
+        const isoDate = birthday.slice(0, 10)
+
         const query = `
         INSERT INTO customers (name, "cpf", phone, birthday)
         VALUES ($1, $2, $3, $4)
         `;
-        const values = [name, cpf, phone, birthday];
+        const values = [name, cpf, phone, isoDate];
 
         const tem = await db.query('SELECT * FROM customers WHERE cpf = $1', [cpf]);
         if (tem.rowCount !== 0) {
@@ -26,25 +29,45 @@ export async function postCusto(req, res) {
 export async function getCustos(req, res) {
     try {
         const result = await db.query('SELECT * FROM customers');
-        res.status(200).send(result.rows);
+
+        // Formatando o campo "birthday" para o formato "YYYY-MM-DD" em todos os objetos
+        const customers = result.rows.map((customer) => {
+            if (customer.birthday) {
+                customer.birthday = customer.birthday.toISOString().split('T')[0];
+            }
+            return customer;
+        });
+
+        res.status(200).send(customers);
     } catch (err) {
         res.status(500).send(err.message);
     }
 }
 
+
 export async function getCustoId(req, res) {
     try {
         const aid = req.params.id;
         const result = await db.query('SELECT * FROM customers WHERE id = $1', [aid]);
+
         if (result.rowCount === 0) {
             res.status(404).send('Customer not found'); // Enviar uma mensagem de erro 404
             return; // Adicionar um 'return' aqui para evitar execução adicional
         }
-        res.status(200).send(result.rows[0]);
+
+        // Formatando o campo "birthday" para o formato "YYYY-MM-DD"
+        const customer = result.rows[0];
+        if (customer.birthday) {
+            customer.birthday = customer.birthday.toISOString().split('T')[0];
+        }
+
+        // Enviar o objeto do cliente com o campo "birthday" formatado
+        res.status(200).send(customer);
     } catch (err) {
         res.status(500).send(err.message);
     }
 }
+
 
 export async function putCusto(req, res) {
     try {
