@@ -4,27 +4,27 @@ export async function postRental(req, res) {
     try {
         const { customerId, gameId, daysRented } = req.body;
 
-        // Verificar se customerId se refere a um cliente existente
+        
         const customerCheck = await db.query('SELECT * FROM customers WHERE id = $1', [customerId]);
         if (customerCheck.rowCount === 0) {
             res.status(400).send('Customer not found');
             return;
         }
 
-        // Verificar se gameId se refere a um jogo existente
+        
         const gameCheck = await db.query('SELECT * FROM games WHERE id = $1', [gameId]);
         if (gameCheck.rowCount === 0) {
             res.status(400).send('Game not found');
             return;
         }
 
-        // Validar que daysRented é maior que 0
+        
         if (daysRented <= 0) {
             res.status(400).send('Invalid daysRented');
             return;
         }
 
-        // Verificar disponibilidade de jogos em estoque
+        
         const stockTotal = gameCheck.rows[0].stockTotal;
         const rentedGames = await db.query('SELECT COUNT(*) FROM rentals WHERE "gameId" = $1 AND "returnDate" IS NULL', [gameId]);
         const rentedCount = parseInt(rentedGames.rows[0].count);
@@ -34,14 +34,14 @@ export async function postRental(req, res) {
             return;
         }
 
-        // Calcular o preço original
+        
         const pricePerDay = gameCheck.rows[0].pricePerDay;
         const originalPrice = daysRented * pricePerDay;
 
-        // Obter a data atual
+        
         const rentDate = new Date();
 
-        // Inserir o aluguel no banco de dados
+        
         const query = `
             INSERT INTO rentals ("customerId", "gameId", "daysRented", "rentDate", "originalPrice", "returnDate", "delayFee")
             VALUES ($1, $2, $3, $4, $5, NULL, NULL)
@@ -79,7 +79,7 @@ export async function getRentals(req, res) {
 
         const result = await db.query(query);
 
-        // Organizar os dados da maneira esperada
+        
         const rentals = result.rows.map((row) => {
             return {
                 id: row.id,
@@ -111,7 +111,7 @@ export async function endRental(req, res) {
     const { id } = req.params;
 
     try {
-        // Verificar se o aluguel com o ID fornecido existe
+        
         const rentalCheck = await db.query('SELECT * FROM rentals WHERE id = $1', [id]);
 
         if (rentalCheck.rowCount === 0) {
@@ -119,28 +119,28 @@ export async function endRental(req, res) {
             return;
         }
 
-        // Verificar se o aluguel já não está finalizado
+        
         const rental = rentalCheck.rows[0];
         if (rental.returnDate !== null) {
             res.status(400).send('Rental already finalized');
             return;
         }
 
-        // Obter a data atual
+        
         const returnDate = new Date();
 
-        // Obter a data do aluguel e calcular o número de dias de atraso
+        
         const rentDate = new Date(rental.rentDate);
         const daysRented = rental.daysRented;
         const pricePerDay = rental.originalPrice / daysRented;
         
-        // Calcular o número de dias de atraso
+        
         const daysDelayed = Math.floor((returnDate - rentDate) / (1000 * 60 * 60 * 24));
         
-        // Calcular a delayFee com base nos dias de atraso
+        
         const delayFee = daysDelayed * pricePerDay;
 
-        // Atualizar o aluguel com a data de retorno e a delayFee
+        
         const updateQuery = `
             UPDATE rentals
             SET "returnDate" = $1, "delayFee" = $2
@@ -161,7 +161,7 @@ export async function deleteRental(req, res) {
     const { id } = req.params;
 
     try {
-        // Verificar se o aluguel com o ID fornecido existe
+
         const rentalCheck = await db.query('SELECT * FROM rentals WHERE id = $1', [id]);
 
         if (rentalCheck.rowCount === 0) {
@@ -169,18 +169,15 @@ export async function deleteRental(req, res) {
             return;
         } 
 
-        // Verificar se o aluguel já está finalizado (returnDate preenchido)
         const rental = rentalCheck.rows[0];
-        if (rental.returnDate !== null) {
-            const deleteQuery = 'DELETE FROM rentals WHERE id = $1';
-            await db.query(deleteQuery, [id]);
-            res.sendStatus(200);
+        if (rental.returnDate === null) {
+            res.status(400).send('Rental not finalized');
             return;
-        } else {
-            res.sendStatus(400)
         }
 
-        // Excluir o aluguel
+        const deleteQuery = 'DELETE FROM rentals WHERE id = $1';
+        await db.query(deleteQuery, [id]);
+        res.sendStatus(200);
     } catch (err) {
         res.status(500).send(err.message);
     }
