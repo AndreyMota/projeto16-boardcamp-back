@@ -6,7 +6,7 @@ import { postRental, getRentals, endRental } from "../Controllers/rentalControll
 const rentalRouter = Router();
 
 rentalRouter.post('/rentals', validateSchema(RentalSchema), postRental);
-rentalRouter.post('/rental/:id/return', endRental);
+rentalRouter.post('/rentals/:id/return', endRental);
 rentalRouter.get('/rentals', getRentals);
 
 export default rentalRouter;
