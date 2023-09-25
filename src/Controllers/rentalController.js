@@ -56,10 +56,52 @@ export async function postRental(req, res) {
 }
 
 
-export async function getGames(req, res) {
+export async function getRentals(req, res) {
     try {
-        const result = await db.query('SELECT * FROM games');
-        res.status(200).send(result.rows);
+        const query = `
+        SELECT 
+            rentals.id, 
+            rentals."customerId", 
+            rentals."gameId", 
+            rentals."rentDate", 
+            rentals."daysRented", 
+            rentals."returnDate", 
+            rentals."originalPrice", 
+            rentals."delayFee", 
+            customers.id AS "customer.id", 
+            customers.name AS "customer.name", 
+            games.id AS "game.id", 
+            games.name AS "game.name"
+        FROM rentals
+        JOIN customers ON rentals."customerId" = customers.id
+        JOIN games ON rentals."gameId" = games.id
+        `;
+
+        const result = await db.query(query);
+
+        // Organizar os dados da maneira esperada
+        const rentals = result.rows.map((row) => {
+            return {
+                id: row.id,
+                customerId: row.customerId,
+                gameId: row.gameId,
+                rentDate: row.rentDate.toISOString().split('T')[0],
+                daysRented: row.daysRented,
+                returnDate: row.returnDate ? row.returnDate.toISOString().split('T')[0] : null,
+                originalPrice: row.originalPrice,
+                delayFee: row.delayFee,
+                customer: {
+                    id: row['customer.id'],
+                    name: row['customer.name']
+                },
+                game: {
+                    id: row['game.id'],
+                    name: row['game.name']
+                }
+            };
+        });
+
+        res.status(200).send(rentals);
     } catch (err) {
         res.status(500).send(err.message);
     }
