@@ -133,12 +133,12 @@ export async function endRental(req, res) {
         const rentDate = new Date(rental.rentDate);
         const daysRented = rental.daysRented;
         const pricePerDay = rental.originalPrice / daysRented;
-        let delayFee = 0;
-
-        if (returnDate > rentDate) {
-            const daysDelayed = (returnDate - rentDate);
-            delayFee = daysDelayed * pricePerDay;
-        }
+        
+        // Calcular o número de dias de atraso
+        const daysDelayed = Math.floor((returnDate - rentDate) / (1000 * 60 * 60 * 24));
+        
+        // Calcular a delayFee com base nos dias de atraso
+        const delayFee = daysDelayed * pricePerDay;
 
         // Atualizar o aluguel com a data de retorno e a delayFee
         const updateQuery = `
@@ -155,6 +155,7 @@ export async function endRental(req, res) {
         res.status(500).send(err.message);
     }
 }
+
 
 export async function deleteRental(req, res) {
     const { id } = req.params;
