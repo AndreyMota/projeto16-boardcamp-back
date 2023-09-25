@@ -40,7 +40,7 @@ export async function getCustoId(req, res) {
             res.status(404).send('Customer not found'); // Enviar uma mensagem de erro 404
             return; // Adicionar um 'return' aqui para evitar execução adicional
         }
-        res.status(200).send(result.rows);
+        res.status(200).send(result.rows[0]);
     } catch (err) {
         res.status(500).send(err.message);
     }
