@@ -106,3 +106,52 @@ export async function getRentals(req, res) {
         res.status(500).send(err.message);
     }
 }
+
+export async function endRental(req, res) {
+    const { id } = req.params;
+
+    try {
+        // Verificar se o aluguel com o ID fornecido existe
+        const rentalCheck = await db.query('SELECT * FROM rentals WHERE id = $1', [id]);
+
+        if (rentalCheck.rowCount === 0) {
+            res.status(404).send('Rental not found');
+            return;
+        }
+
+        // Verificar se o aluguel já não está finalizado
+        const rental = rentalCheck.rows[0];
+        if (rental.returnDate !== null) {
+            res.status(400).send('Rental already finalized');
+            return;
+        }
+
+        // Obter a data atual
+        const returnDate = new Date();
+
+        // Calcular a delayFee (multa por atraso) se houver atraso na devolução
+        const rentDate = new Date(rental.rentDate);
+        const daysRented = rental.daysRented;
+        const pricePerDay = rental.originalPrice / daysRented;
+        let delayFee = 0;
+
+        if (returnDate > rentDate) {
+            const daysDelayed = Math.floor((returnDate - rentDate) / (1000 * 60 * 60 * 24));
+            delayFee = daysDelayed * pricePerDay;
+        }
+
+        // Atualizar o aluguel com a data de retorno e a delayFee
+        const updateQuery = `
+            UPDATE rentals
+            SET "returnDate" = $1, "delayFee" = $2
+            WHERE id = $3
+        `;
+        const updateValues = [returnDate, delayFee, id];
+
+        await db.query(updateQuery, updateValues);
+
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+}
