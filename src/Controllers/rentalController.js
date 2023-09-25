@@ -129,14 +129,15 @@ export async function endRental(req, res) {
         // Obter a data atual
         const returnDate = new Date();
 
-        // Calcular a delayFee (multa por atraso) se houver atraso na devolução
+        // Obter a data do aluguel e calcular o número de dias de atraso
         const rentDate = new Date(rental.rentDate);
         const daysRented = rental.daysRented;
         const pricePerDay = rental.originalPrice / daysRented;
         let delayFee = 0;
 
         if (returnDate > rentDate) {
-            const daysDelayed = Math.floor((returnDate - rentDate) / (1000 * 60 * 60 * 24));
+            const millisecondsPerDay = 24 * 60 * 60 * 1000;
+            const daysDelayed = Math.floor((returnDate - rentDate) / millisecondsPerDay);
             delayFee = daysDelayed * pricePerDay;
         }
 
@@ -171,7 +172,7 @@ export async function deleteRental(req, res) {
         // Verificar se o aluguel já está finalizado (returnDate preenchido)
         const rental = rentalCheck.rows[0];
         if (rental.returnDate !== null) {
-            res.status(400).send('Rental already finalized');
+            res.status(200).send('Rental already finalized');
             return;
         }
 
